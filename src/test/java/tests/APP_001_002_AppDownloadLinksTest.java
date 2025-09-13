@@ -62,7 +62,7 @@ public class APP_001_002_AppDownloadLinksTest extends Base {
         // Get expected values from test data
         String expectedAppStoreUrlPattern = testData.getAppStoreExpectations().get("urlPattern");
         String expectedTitleContains = testData.getAppStoreExpectations().get("titleContains");
-        String expectedExactTitle = "MultiBank.io: Buy BTC & Crypto";
+        String expectedExactTitle = testData.getAppStoreExpectations().get("exactTitle");
 
         // Step 3: Click the App Store link
         log.info("Step 3: Clicking App Store link");
@@ -137,7 +137,7 @@ public class APP_001_002_AppDownloadLinksTest extends Base {
         WebElement googlePlayLink = homePage.googlePlayLink;
         Assert.assertNotNull(googlePlayLink, "Google Play download link should be present");
         Assert.assertTrue(googlePlayLink.isDisplayed(), "Google Play link should be visible");
-        log.info("✓ Google Play link found and visible");
+        log.info("Google Play link found and visible");
 
         // Step 3: Click the Google Play link
         log.info("Step 3: Clicking Google Play link");
