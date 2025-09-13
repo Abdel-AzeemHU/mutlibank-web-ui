@@ -302,12 +302,3 @@ jobs:
           pwsh send_email.ps1
         env:
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-
-      - name: Publish Test Results
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Maven Tests
-          path: target/surefire-reports/*.xml
-          reporter: java-junit
-          fail-on-error: true
