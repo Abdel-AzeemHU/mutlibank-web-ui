@@ -1,4 +1,4 @@
-name: Waslah QA Web Automation
+name: Multibank QA Web Automation
 
 on:
   push:
@@ -153,7 +153,7 @@ jobs:
       if: always()
       with:
         name: ExtentReport
-        path: ${{ github.workspace }}/reports/Waslah_Execution_Report.html
+        path: ${{ github.workspace }}/reports/UI_Automation_Report.html
 
     - name: Upload Test Summary
       uses: actions/upload-artifact@v4
@@ -195,12 +195,12 @@ jobs:
         $sendGridUrl = "https://api.sendgrid.com/v3/mail/send"
         
         # Define the email parameters
-        $fromEmail = "noreply@emiratespost.email"  # Sender email
-        $toEmails = @("neha.gopal@7x.ae", "ygyvhrej@gmail.com")  # Main recipients
-        $bccEmails = @("abdelazeem.hussein@7x.ae", "aytyuyfve@gmail.com")  # BCC recipients
-        $subject = "Waslah Web Automation Test Report - GitHub Actions"
+        $fromEmail = "abdelazeemhu@gmail.com"  # Sender email
+        $toEmails = @("yassmineamr2@gmail.com", "ygyvhrej@gmail.com")  # Main recipients
+        $bccEmails = @("aytyuyfve@gmail.com")  # BCC recipients
+        $subject = "Multibank Web Automation Test Report - GitHub Actions"
         $finalReportPath = "${{ github.workspace }}/reports/final_report.html"
-        $extentReportPath = "${{ github.workspace }}/reports/Waslah_Execution_Report.html"
+        $extentReportPath = "${{ github.workspace }}/reports/UI_Automation_Report.html"
         
         # Check if files exist
         if (-not (Test-Path $finalReportPath)) {
@@ -242,7 +242,7 @@ jobs:
                 @{
                     "content" = $encodedExtentReport
                     "type" = "text/html"
-                    "filename" = "Waslah_Execution_Report.html"
+                    "filename" = "UI_Automation_Report.html"
                     "disposition" = "attachment"
                 }
             )
