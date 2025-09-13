@@ -148,7 +148,7 @@ public class Base {
                 FirefoxOptions firefoxOptions = new FirefoxOptions();
 
                 // Essential only
-//                firefoxOptions.setHeadless(true);
+//				firefoxOptions.addArguments("--headless");
 
                 // ONLY the 3 most critical CI/CD arguments
                 firefoxOptions.addArguments("--no-sandbox");
@@ -175,9 +175,6 @@ public class Base {
         }
     }
 
-//	public void waitForVisibility(WebElement element) {
-//		new WebDriverWait(getDriver(), Duration.ofSeconds(10)).until(ExpectedConditions.visibilityOf(element));
-//	}
 
     public WebElement waitForVisibility(WebElement element) {
         return new WebDriverWait(getDriver(), Duration.ofSeconds(15))
@@ -195,10 +192,6 @@ public class Base {
         new WebDriverWait(getDriver(), Duration.ofSeconds(10))
                 .until(ExpectedConditions.visibilityOfAllElements(elements));
     }
-
-//	public void waitForClickability(WebElement element) {
-//		new WebDriverWait(getDriver(), Duration.ofSeconds(10)).until(ExpectedConditions.elementToBeClickable(element));
-//	}
 
     public WebElement waitForClickability(WebElement element) {
         return new WebDriverWait(getDriver(), Duration.ofSeconds(10))

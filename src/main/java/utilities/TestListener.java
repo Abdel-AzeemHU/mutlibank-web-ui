@@ -25,6 +25,8 @@ public class TestListener extends CommonActions implements ITestListener {
     private static final Map<String, Integer> retryTracker = new HashMap<>();
     private static final Map<String, String> displayNames = new HashMap<>();
     private static final Map<String, Boolean> testCompleted = new HashMap<>();
+    private static final Map<String, Boolean> videoRecordingStarted = new HashMap<>();
+
 
     @Override
     public void onStart(ITestContext context) {
@@ -39,6 +41,13 @@ public class TestListener extends CommonActions implements ITestListener {
         }
 
         System.out.println("🔹 Test execution started");
+        // Check if video recording is available
+        if (isPipelineEnvironment()) {
+            System.out.println("📹 Pipeline environment detected - video recording will be enabled for failed tests");
+        } else {
+            System.out.println("💻 Local environment detected - video recording disabled");
+        }
+
     }
 
     @Override
@@ -51,9 +60,21 @@ public class TestListener extends CommonActions implements ITestListener {
             ExtentTest test = extent.createTest(methodOnlyName).assignAuthor("Abdelazeem").assignCategory("REGRESSION");
             extentTestMap.put(uniqueName, test);
             test.log(Status.INFO, "Test started: " + methodOnlyName);
+
+            // Start video recording for this test (pipeline only)
+            if (isPipelineEnvironment()) {
+                VideoRecorder.startRecording(methodOnlyName);
+                videoRecordingStarted.put(uniqueName, true);
+            }
         } else {
             ExtentTest test = extentTestMap.get(uniqueName);
             test.log(Status.INFO, "Retrying test: " + methodOnlyName);
+
+            // Start recording for retry if not already started
+            if (isPipelineEnvironment() && !videoRecordingStarted.getOrDefault(uniqueName, false)) {
+                VideoRecorder.startRecording(methodOnlyName);
+                videoRecordingStarted.put(uniqueName, true);
+            }
         }
     }
 
@@ -68,9 +89,16 @@ public class TestListener extends CommonActions implements ITestListener {
         testCompleted.put(uniqueName, true);
 
         if (test != null) {
-            // Clear any previous failure logs if this test passed after retry
             test.log(Status.PASS, methodName + " passed" + (retryCount > 0 ? " after " + retryCount + " retry attempt(s)." : " successfully."));
         }
+
+        // Stop recording and delete the video since test passed
+        if (videoRecordingStarted.getOrDefault(uniqueName, false)) {
+            VideoRecorder.stopRecording();
+            VideoRecorder.deleteRecording();
+            videoRecordingStarted.put(uniqueName, false);
+        }
+
         finalResults.put(uniqueName, result);
         retryTracker.put(uniqueName, retryCount);
     }
@@ -92,7 +120,22 @@ public class TestListener extends CommonActions implements ITestListener {
 
         if (test != null) {
             if (isFinalFailure) {
-                // Only capture screenshot for final failures
+                // Stop and save video recording for failed test
+                if (videoRecordingStarted.getOrDefault(uniqueName, false)) {
+                    VideoRecorder.stopRecording();
+                    videoRecordingStarted.put(uniqueName, false);
+
+                    // Get video path and add to report
+                    String videoPath = VideoRecorder.getVideoPath();
+                    if (videoPath != null) {
+                        File videoFile = new File(videoPath);
+                        if (videoFile.exists()) {
+                            test.log(Status.INFO, "🎥 Video recording saved: " + videoFile.getName());
+                        }
+                    }
+                }
+
+                // Capture screenshot for final failures
                 String base64Screenshot = captureScreenshotAsBase64(result, methodName);
 
                 if (base64Screenshot != null) {
@@ -107,7 +150,7 @@ public class TestListener extends CommonActions implements ITestListener {
                     test.fail(result.getThrowable());
                 }
             } else {
-                // Just log the retry attempt without screenshot
+                // Just log the retry attempt without stopping the recording
                 test.log(Status.INFO, methodName + " failed (attempt " + (retryCount + 1) + "), will retry...");
             }
         }
@@ -151,22 +194,78 @@ public class TestListener extends CommonActions implements ITestListener {
         if (test != null) {
             test.log(Status.SKIP, methodName + " was skipped and not retried.");
         }
+
+        // Stop and delete video for skipped tests
+        if (videoRecordingStarted.getOrDefault(uniqueName, false)) {
+            VideoRecorder.stopRecording();
+            VideoRecorder.deleteRecording();
+            videoRecordingStarted.put(uniqueName, false);
+        }
+
         finalResults.put(uniqueName, result);
         retryTracker.put(uniqueName, 0);
     }
 
     @Override
     public void onFinish(ITestContext context) {
+        // Ensure any remaining recordings are stopped
+        if (VideoRecorder.isRecording()) {
+            System.out.println("⚠️ Cleaning up remaining video recording...");
+            VideoRecorder.stopRecording();
+        }
+
+        // Force cleanup just in case
+        VideoRecorder.forceCleanup();
+
         if (extent != null) {
             extent.flush();
             System.out.println("✅ Extent Report generated successfully.");
         }
+
+        // Count video files created
+        File videoDir = new File("./reports/videos");
+        if (videoDir.exists()) {
+            int videoCount = countVideoFiles(videoDir);
+            if (videoCount > 0) {
+                System.out.println("📹 Total video recordings saved: " + videoCount);
+            }
+        }
+
         try {
             exportTestSummary("./reports/test_summary.txt");
         } catch (IOException e) {
             System.err.println("Error writing test summary: " + e.getMessage());
         }
     }
+
+    /**
+     * Check if running in pipeline environment
+     */
+    private boolean isPipelineEnvironment() {
+        return System.getenv("CI") != null ||
+                System.getenv("AZURE_PIPELINES") != null ||
+                System.getenv("BUILD_ID") != null ||
+                System.getenv("AGENT_ID") != null;
+    }
+
+    /**
+     * Count video files in directory
+     */
+    private int countVideoFiles(File dir) {
+        int count = 0;
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    count += countVideoFiles(file);
+                } else if (file.getName().endsWith(".mp4")) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
 
     private String getUniqueTestName(ITestResult result) {
         return result.getTestClass().getName() + "." + result.getMethod().getMethodName();
@@ -216,7 +315,7 @@ public class TestListener extends CommonActions implements ITestListener {
             // Don't create timestamp subdirectories - pipeline expects flat structure
             if (!screenshotDir.exists()) {
                 boolean created = screenshotDir.mkdirs();
-                System.out.println("📁 Created screenshot directory: " + screenshotDir.getAbsolutePath() + " (success: " + created + ")");
+                System.out.println("📂 Created screenshot directory: " + screenshotDir.getAbsolutePath() + " (success: " + created + ")");
             }
 
             File screenshotFile = screenshot.getScreenshotAs(OutputType.FILE);
