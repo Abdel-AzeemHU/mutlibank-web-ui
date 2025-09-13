@@ -1,18 +1,15 @@
 package tests;
 
-import Base.base;
+import Base.Base;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
-import utilities.testlistener;
-
-import java.util.HashMap;
-import java.util.Map;
+import utilities.TestListener;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
-@Listeners(testlistener.class)
-public class PowerPlanetTests extends base {
+@Listeners(TestListener.class)
+public class PowerPlanetTests extends Base {
 
 
     /* Test case
