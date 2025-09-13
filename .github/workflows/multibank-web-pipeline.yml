@@ -5,286 +5,308 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # Uncomment to enable scheduled runs
+  # schedule:
+  #   - cron: '0 3 * * 0-6'  # 3 AM UTC (7 AM UAE) daily
 
 env:
   ENVIRONMENT: "Staging"  # or "Production"
   TESTER: "Abdelazeem Hussein"
 
 jobs:
-  run-waslah-qa-web-automation:
+  run-multibank-qa-web-automation:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        clean: true
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          clean: true
 
-    - name: Set up Java 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-    - name: Cache Maven dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
 
-    - name: Setup FFmpeg and Virtual Display
-      run: |
-        # Install FFmpeg
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg
-        ffmpeg -version
-        
-        # Setup virtual display for headless video recording
-        sudo apt-get install -y xvfb
-        export DISPLAY=:99
-        Xvfb :99 -screen 0 1920x1080x24 &
-        sleep 3
-        echo "Virtual display started on :99"
-        
-        # Verify virtual display is working
-        ps aux | grep Xvfb | grep -v grep || echo "Xvfb process check"
-        
-        # Test FFmpeg X11 capture capability
-        timeout 5s ffmpeg -f x11grab -video_size 100x100 -framerate 1 -i :99 -t 1 -y /tmp/test_capture.mp4 && echo "✅ X11 capture test successful" || echo "⚠️ X11 capture test failed"
-        
-        # Check if test video was created
-        if [ -f /tmp/test_capture.mp4 ]; then
-          echo "✅ Test video created successfully"
-          ls -la /tmp/test_capture.mp4
-          rm /tmp/test_capture.mp4
-        else
-          echo "⚠️ Test video creation failed"
-        fi
+      - name: Setup FFmpeg and Virtual Display
+        run: |
+          # Install FFmpeg
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version
+          
+          # Setup virtual display for headless video recording
+          sudo apt-get install -y xvfb
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1920x1080x24 &
+          sleep 3
+          echo "Virtual display started on :99"
+          
+          # Verify virtual display is working
+          ps aux | grep Xvfb | grep -v grep || echo "Xvfb process check"
+          
+          # Test FFmpeg X11 capture capability
+          timeout 5s ffmpeg -f x11grab -video_size 100x100 -framerate 1 -i :99 -t 1 -y /tmp/test_capture.mp4 && echo "✅ X11 capture test successful" || echo "⚠️ X11 capture test failed"
+          
+          # Check if test video was created
+          if [ -f /tmp/test_capture.mp4 ]; then
+            echo "✅ Test video created successfully"
+            ls -la /tmp/test_capture.mp4
+            rm /tmp/test_capture.mp4
+          else
+            echo "⚠️ Test video creation failed"
+          fi
 
-    - name: Maven Build
-      run: |
-        mvn clean install -DskipTests
-      env:
-        MAVEN_OPTS: '-Xmx3072m'
+      - name: Maven Build
+        run: |
+          # Debug Maven and Java versions
+          echo "=== Environment Debug ==="
+          mvn --version
+          java -version
+          echo "JAVA_HOME: $JAVA_HOME"
+          
+          # Check for Lombok in dependency tree
+          echo "=== Checking for Lombok dependencies ==="
+          mvn dependency:tree | grep -i lombok || echo "No Lombok found in dependency tree"
+          
+          # Try building with annotation processing disabled first
+          echo "=== Trying build with annotation processing disabled ==="
+          mvn clean install -DskipTests -Dmaven.compiler.proc=none
+          
+          # If that fails, try with JVM opens
+          if [ $? -ne 0 ]; then
+            echo "=== Retrying with JVM opens for annotation processors ==="
+            export MAVEN_OPTS="--add-opens jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED --add-opens jdk.compiler/com.sun.tools.javac.jvm=ALL-UNNAMED"
+            mvn clean install -DskipTests
+          fi
+        env:
+          MAVEN_OPTS: '-Xmx3072m'
 
-    - name: Run Web Tests with TestNG
-      run: |
-        # Set display for headless recording
-        export DISPLAY=:99
-        
-        # Create directories to ensure they exist
-        mkdir -p ${{ github.workspace }}/reports/videos
-        mkdir -p ${{ github.workspace }}/reports/screenshots
-        
-        # Start timing
-        start_time=$(date +%s.%N)
+      - name: Run Web Tests with TestNG
+        run: |
+          # Set display for headless recording
+          export DISPLAY=:99
+          
+          # Create directories to ensure they exist
+          mkdir -p ${{ github.workspace }}/reports/videos
+          mkdir -p ${{ github.workspace }}/reports/screenshots
+          
+          # Start timing
+          start_time=$(date +%s.%N)
+          
+          # Run tests with video recording enabled
+          mvn clean test -Dsurefire.suiteXmlFiles=testng.xml -Djava.awt.headless=true
+          
+          end_time=$(date +%s.%N)
+          duration=$(echo "$end_time - $start_time" | bc)
+          formatted_duration=$(printf '%02dh:%02dm:%02.2fs' $(echo "$duration/3600" | bc) $(echo "($duration%3600)/60" | bc) $(echo "$duration%60" | bc))
+          
+          echo "duration=$formatted_duration" >> ${{ github.workspace }}/reports/test_summary.txt
+          echo "environment=${{ env.ENVIRONMENT }}" >> ${{ github.workspace }}/reports/test_summary.txt
+          echo "tester=${{ env.TESTER }}" >> ${{ github.workspace }}/reports/test_summary.txt
+          
+          echo "TEST_DURATION=$formatted_duration" >> $GITHUB_ENV
+          
+          # Check and report on artifacts created
+          echo "============================================"
+          echo "📊 Test Artifacts Summary:"
+          echo "============================================"
+          
+          # Check for videos
+          video_count=$(find ${{ github.workspace }}/reports/videos -name "*.mp4" -type f 2>/dev/null | wc -l)
+          if [ "$video_count" -gt 0 ]; then
+            echo "🎥 Videos created: $video_count failed test(s) recorded"
+            echo "Video files:"
+            find ${{ github.workspace }}/reports/videos -name "*.mp4" -type f -exec ls -lh {} \; 2>/dev/null | head -10
+            echo "HAS_VIDEOS=true" >> $GITHUB_ENV
+          else
+            echo "✅ No videos created (all tests passed or recording disabled)"
+            # Create a placeholder file so the directory isn't empty
+            echo "All tests passed - no videos recorded" > ${{ github.workspace }}/reports/videos/README.txt
+            echo "HAS_VIDEOS=false" >> $GITHUB_ENV
+          fi
+          
+          # Check for screenshots
+          screenshot_count=$(find ${{ github.workspace }}/reports/screenshots -name "*.png" -type f 2>/dev/null | wc -l)
+          if [ "$screenshot_count" -gt 0 ]; then
+            echo "📸 Screenshots created: $screenshot_count"
+            echo "Screenshot files:"
+            find ${{ github.workspace }}/reports/screenshots -name "*.png" -type f -exec ls -lh {} \; 2>/dev/null | head -10
+            echo "HAS_SCREENSHOTS=true" >> $GITHUB_ENV
+          else
+            echo "✅ No screenshots created (all tests passed)"
+            # Create a placeholder file so the directory isn't empty
+            echo "All tests passed - no screenshots captured" > ${{ github.workspace }}/reports/screenshots/README.txt
+            echo "HAS_SCREENSHOTS=false" >> $GITHUB_ENV
+          fi
+          
+          echo "============================================"
+        env:
+          DISPLAY: ':99'
+          CI: 'true'
+          GITHUB_ACTIONS: 'true'
 
-        # Run tests with video recording enabled
-        mvn clean test -Dsurefire.suiteXmlFiles=testng.xml -Djava.awt.headless=true
-        
-        end_time=$(date +%s.%N)
-        duration=$(echo "$end_time - $start_time" | bc)
-        formatted_duration=$(printf '%02dh:%02dm:%02.2fs' $(echo "$duration/3600" | bc) $(echo "($duration%3600)/60" | bc) $(echo "$duration%60" | bc))
+      - name: Generate Final Report with Artifact Links
+        run: |
+          chmod +x ./generate_report.sh
+          
+          # Create artifacts URL for GitHub Actions
+          ARTIFACTS_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          # Generate the report with the artifacts URL
+          ./generate_report.sh "$ARTIFACTS_URL"
+          
+          # Debug: Show the URL being used
+          echo "============================================"
+          echo "Artifacts URL: $ARTIFACTS_URL"
+          echo "============================================"
 
-        echo "duration=$formatted_duration" >> ${{ github.workspace }}/reports/test_summary.txt
-        echo "environment=${{ env.ENVIRONMENT }}" >> ${{ github.workspace }}/reports/test_summary.txt
-        echo "tester=${{ env.TESTER }}" >> ${{ github.workspace }}/reports/test_summary.txt
+      - name: Upload Extent Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ExtentReport
+          path: ${{ github.workspace }}/reports/UI_Automation_Report.html
 
-        echo "TEST_DURATION=$formatted_duration" >> $GITHUB_ENV
-        
-        # Check and report on artifacts created
-        echo "============================================"
-        echo "📊 Test Artifacts Summary:"
-        echo "============================================"
-        
-        # Check for videos
-        video_count=$(find ${{ github.workspace }}/reports/videos -name "*.mp4" -type f 2>/dev/null | wc -l)
-        if [ "$video_count" -gt 0 ]; then
-          echo "🎥 Videos created: $video_count failed test(s) recorded"
-          echo "Video files:"
-          find ${{ github.workspace }}/reports/videos -name "*.mp4" -type f -exec ls -lh {} \; 2>/dev/null | head -10
-          echo "HAS_VIDEOS=true" >> $GITHUB_ENV
-        else
-          echo "✅ No videos created (all tests passed or recording disabled)"
-          # Create a placeholder file so the directory isn't empty
-          echo "All tests passed - no videos recorded" > ${{ github.workspace }}/reports/videos/README.txt
-          echo "HAS_VIDEOS=false" >> $GITHUB_ENV
-        fi
-        
-        # Check for screenshots
-        screenshot_count=$(find ${{ github.workspace }}/reports/screenshots -name "*.png" -type f 2>/dev/null | wc -l)
-        if [ "$screenshot_count" -gt 0 ]; then
-          echo "📸 Screenshots created: $screenshot_count"
-          echo "Screenshot files:"
-          find ${{ github.workspace }}/reports/screenshots -name "*.png" -type f -exec ls -lh {} \; 2>/dev/null | head -10
-          echo "HAS_SCREENSHOTS=true" >> $GITHUB_ENV
-        else
-          echo "✅ No screenshots created (all tests passed)"
-          # Create a placeholder file so the directory isn't empty
-          echo "All tests passed - no screenshots captured" > ${{ github.workspace }}/reports/screenshots/README.txt
-          echo "HAS_SCREENSHOTS=false" >> $GITHUB_ENV
-        fi
-        
-        echo "============================================"
-      env:
-        DISPLAY: ':99'
-        CI: 'true'
-        GITHUB_ACTIONS: 'true'
+      - name: Upload Test Summary
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TestSummary
+          path: ${{ github.workspace }}/reports/test_summary.txt
 
-    - name: Generate Final Report with Artifact Links
-      run: |
-        chmod +x ./generate_report.sh
-        
-        # Create artifacts URL for GitHub Actions
-        ARTIFACTS_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        
-        # Generate the report with the artifacts URL
-        ./generate_report.sh "$ARTIFACTS_URL"
-        
-        # Debug: Show the URL being used
-        echo "============================================"
-        echo "Artifacts URL: $ARTIFACTS_URL"
-        echo "============================================"
+      - name: Upload Video Recordings
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: VideoRecordings
+          path: ${{ github.workspace }}/reports/videos/
 
-    - name: Upload Extent Report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: ExtentReport
-        path: ${{ github.workspace }}/reports/UI_Automation_Report.html
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Screenshots
+          path: ${{ github.workspace }}/reports/screenshots/
 
-    - name: Upload Test Summary
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: TestSummary
-        path: ${{ github.workspace }}/reports/test_summary.txt
+      - name: Upload Final Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: FinalReportWithHTML
+          path: ${{ github.workspace }}/reports/final_report.html
 
-    - name: Upload Video Recordings
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: VideoRecordings
-        path: ${{ github.workspace }}/reports/videos/
+      - name: Send Final Report with SendGrid
+        if: always()
+        run: |
+          # Create PowerShell script for sending email
+          cat > send_email.ps1 << 'EOF'
+          # Define your SendGrid API key (from environment variable)
+          $apiKey = $env:SENDGRID_API_KEY
+          
+          # Define the SendGrid API URL
+          $sendGridUrl = "https://api.sendgrid.com/v3/mail/send"
+          
+          # Define the email parameters
+          $fromEmail = "abdelazeemhu@gmail.com"  # Sender email
+          $toEmails = @("yassmineamr2@gmail.com", "ygyvhrej@gmail.com")  # Main recipients
+          $bccEmails = @("aytyuyfve@gmail.com")  # BCC recipients
+          $subject = "Multibank Web Automation Test Report - GitHub Actions"
+          $finalReportPath = "${{ github.workspace }}/reports/final_report.html"
+          $extentReportPath = "${{ github.workspace }}/reports/UI_Automation_Report.html"
+          
+          # Check if files exist
+          if (-not (Test-Path $finalReportPath)) {
+              Write-Host "Final report not found at: $finalReportPath"
+              exit 1
+          }
+          
+          if (-not (Test-Path $extentReportPath)) {
+              Write-Host "Extent report not found at: $extentReportPath"
+              exit 1
+          }
+          
+          # Read the final report HTML content
+          $bodyContent = Get-Content -Path $finalReportPath -Raw
+          
+          # Read the Extent report content and convert it to base64 for attachment
+          $extentReportBytes = [System.IO.File]::ReadAllBytes($extentReportPath)
+          $encodedExtentReport = [System.Convert]::ToBase64String($extentReportBytes)
+          
+          # Prepare the email content for SendGrid with to, cc, and bcc recipients
+          $emailBody = @{
+              "personalizations" = @(
+                  @{
+                      "to" = $toEmails | ForEach-Object { @{ "email" = $_ } }  # Main recipients
+                      "bcc" = $bccEmails | ForEach-Object { @{ "email" = $_ } }  # BCC recipients
+                      "subject" = $subject
+                  }
+              )
+              "from" = @{
+                  "email" = $fromEmail
+              }
+              "content" = @(
+                  @{
+                      "type" = "text/html"
+                      "value" = $bodyContent
+                  }
+              )
+              "attachments" = @(
+                  @{
+                      "content" = $encodedExtentReport
+                      "type" = "text/html"
+                      "filename" = "UI_Automation_Report.html"
+                      "disposition" = "attachment"
+                  }
+              )
+              # Disable link tracking to prevent URL wrapping
+              "tracking_settings" = @{
+                  "click_tracking" = @{
+                      "enable" = $false
+                  }
+                  "open_tracking" = @{
+                      "enable" = $false
+                  }
+              }
+          }
+          
+          # Convert the email body to JSON
+          $emailBodyJson = $emailBody | ConvertTo-Json -Depth 4
+          
+          # Send the request to SendGrid
+          try {
+              $response = Invoke-RestMethod -Uri $sendGridUrl -Method Post -Headers @{
+                  "Authorization" = "Bearer $apiKey"
+                  "Content-Type" = "application/json"
+              } -Body $emailBodyJson
+          
+              Write-Host "Email sent successfully!"
+          } catch {
+              Write-Host "Failed to send email: $_"
+              Write-Host "Error details: $($_.Exception.Message)"
+              exit 1
+          }
+          EOF
+          
+          # Run the PowerShell script
+          pwsh send_email.ps1
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
 
-    - name: Upload Screenshots
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: Screenshots
-        path: ${{ github.workspace }}/reports/screenshots/
-
-    - name: Upload Final Report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: FinalReportWithHTML
-        path: ${{ github.workspace }}/reports/final_report.html
-
-    - name: Send Final Report with SendGrid
-      if: always()
-      run: |
-        # Create PowerShell script for sending email
-        cat > send_email.ps1 << 'EOF'
-        # Define your SendGrid API key (from environment variable)
-        $apiKey = $env:SENDGRID_API_KEY
-        
-        # Define the SendGrid API URL
-        $sendGridUrl = "https://api.sendgrid.com/v3/mail/send"
-        
-        # Define the email parameters
-        $fromEmail = "abdelazeemhu@gmail.com"  # Sender email
-        $toEmails = @("yassmineamr2@gmail.com", "ygyvhrej@gmail.com")  # Main recipients
-        $bccEmails = @("aytyuyfve@gmail.com")  # BCC recipients
-        $subject = "Multibank Web Automation Test Report - GitHub Actions"
-        $finalReportPath = "${{ github.workspace }}/reports/final_report.html"
-        $extentReportPath = "${{ github.workspace }}/reports/UI_Automation_Report.html"
-        
-        # Check if files exist
-        if (-not (Test-Path $finalReportPath)) {
-            Write-Host "Final report not found at: $finalReportPath"
-            exit 1
-        }
-        
-        if (-not (Test-Path $extentReportPath)) {
-            Write-Host "Extent report not found at: $extentReportPath"
-            exit 1
-        }
-        
-        # Read the final report HTML content
-        $bodyContent = Get-Content -Path $finalReportPath -Raw
-        
-        # Read the Extent report content and convert it to base64 for attachment
-        $extentReportBytes = [System.IO.File]::ReadAllBytes($extentReportPath)
-        $encodedExtentReport = [System.Convert]::ToBase64String($extentReportBytes)
-        
-        # Prepare the email content for SendGrid with to, cc, and bcc recipients
-        $emailBody = @{
-            "personalizations" = @(
-                @{
-                    "to" = $toEmails | ForEach-Object { @{ "email" = $_ } }  # Main recipients
-                    "bcc" = $bccEmails | ForEach-Object { @{ "email" = $_ } }  # BCC recipients
-                    "subject" = $subject
-                }
-            )
-            "from" = @{
-                "email" = $fromEmail
-            }
-            "content" = @(
-                @{
-                    "type" = "text/html"
-                    "value" = $bodyContent
-                }
-            )
-            "attachments" = @(
-                @{
-                    "content" = $encodedExtentReport
-                    "type" = "text/html"
-                    "filename" = "UI_Automation_Report.html"
-                    "disposition" = "attachment"
-                }
-            )
-            # Disable link tracking to prevent URL wrapping
-            "tracking_settings" = @{
-                "click_tracking" = @{
-                    "enable" = $false
-                }
-                "open_tracking" = @{
-                    "enable" = $false
-                }
-            }
-        }
-        
-        # Convert the email body to JSON
-        $emailBodyJson = $emailBody | ConvertTo-Json -Depth 4
-        
-        # Send the request to SendGrid
-        try {
-            $response = Invoke-RestMethod -Uri $sendGridUrl -Method Post -Headers @{
-                "Authorization" = "Bearer $apiKey"
-                "Content-Type" = "application/json"
-            } -Body $emailBodyJson
-        
-            Write-Host "Email sent successfully!"
-        } catch {
-            Write-Host "Failed to send email: $_"
-            Write-Host "Error details: $($_.Exception.Message)"
-            exit 1
-        }
-        EOF
-        
-        # Run the PowerShell script
-        pwsh send_email.ps1
-      env:
-        SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-
-    - name: Publish Test Results
-      uses: dorny/test-reporter@v1
-      if: always()
-      with:
-        name: Maven Tests
-        path: target/surefire-reports/*.xml
-        reporter: java-junit
-        fail-on-error: true
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Maven Tests
+          path: target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: true
