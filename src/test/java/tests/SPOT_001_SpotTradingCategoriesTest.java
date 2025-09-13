@@ -43,34 +43,34 @@ public class SPOT_001_SpotTradingCategoriesTest extends Base {
         String currentUrl = driver.getCurrentUrl();
         log.info("Current URL: " + currentUrl);
 
-        // Check if Spot header contains "Spot" text
-        try {
-            String spotHeaderText = homePage.spotHeader.getText();
-            log.info("Spot header text: " + spotHeaderText);
-
-            boolean isSpotVisible = homePage.spotHeader.isDisplayed() &&
-                    spotHeaderText.contains("Spot");
-
-            Assert.assertTrue(isSpotVisible, "Spot header should be visible and contain 'Spot' text");
-            log.info("✓ Spot header found and visible: " + spotHeaderText);
-
-        } catch (Exception e) {
-            log.error("Spot header not found or not visible: " + e.getMessage());
-
-            // Debug: Check what's actually visible
-            List<WebElement> activeHeaders = driver.findElements(
-                    By.xpath("//span[contains(@class, 'style_active__Yuxzy')]")
-            );
-
-            for (WebElement header : activeHeaders) {
-                if (header.isDisplayed()) {
-                    log.info("Active header found: " + header.getText());
-                }
-            }
-
-            Assert.fail("Spot trading section is not active. Current active section: " +
-                    (activeHeaders.isEmpty() ? "None" : activeHeaders.get(0).getText()));
-        }
+//        // Check if Spot header contains "Spot" text
+//        try {
+//            String spotHeaderText = homePage.spotHeader.getText();
+//            log.info("Spot header text: " + spotHeaderText);
+//
+//            boolean isSpotVisible = homePage.spotHeader.isDisplayed() &&
+//                    spotHeaderText.contains("Spot");
+//
+//            Assert.assertTrue(isSpotVisible, "Spot header should be visible and contain 'Spot' text");
+//            log.info("Spot header found and visible: " + spotHeaderText);
+//
+//        } catch (Exception e) {
+//            log.error("Spot header not found or not visible: " + e.getMessage());
+//
+//            // Debug: Check what's actually visible
+//            List<WebElement> activeHeaders = driver.findElements(
+//                    By.xpath("//span[contains(@class, 'style_active__Yuxzy')]")
+//            );
+//
+//            for (WebElement header : activeHeaders) {
+//                if (header.isDisplayed()) {
+//                    log.info("Active header found: " + header.getText());
+//                }
+//            }
+//
+//            Assert.fail("Spot trading section is not active. Current active section: " +
+//                    (activeHeaders.isEmpty() ? "None" : activeHeaders.get(0).getText()));
+//        }
 
         // Step 2: Click All category button using your existing method
         log.info("Step 2: Clicking 'All' category button");

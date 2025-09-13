@@ -68,7 +68,7 @@
     "appStore": {
       "urlPattern": "apps.apple.com",
       "titleContains": "MultiBank",
-      "exactTitle": "MultiBank.io: Buy BTC & Crypto"
+      "exactTitle": "MultiBank.io: Buy BTC & Crypto 17+"
     },
     "googlePlay": {
       "urlPattern": "play.google.com",

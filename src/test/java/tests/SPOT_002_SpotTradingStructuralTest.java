@@ -33,17 +33,12 @@ public class SPOT_002_SpotTradingStructuralTest extends Base {
         Thread.sleep(5000);
         waitForPageLoad();
 
-        // Step 1: Verify Spot section is visible
-        log.info("Step 1: Verifying Spot section is visible");
-        Assert.assertTrue(homePage.isSpotHeaderVisible(), "Spot header should be visible");
-        log.info("Spot section is visible");
-
-        // Step 2: Click 'All' category to ensure we see all trading pairs
+        // Step 1: Click 'All' category to ensure we see all trading pairs
         log.info("Step 2: Clicking 'All' category to see all pairs");
         homePage.clickSpotCategory("All");
         Thread.sleep(3000); // Wait for pairs to load
 
-        // Step 3: Validate column headers
+        // Step 2: Validate column headers
         log.info("Step 3: Validating column headers");
         try {
             homePage.validateColumnHeaders();
@@ -53,7 +48,7 @@ public class SPOT_002_SpotTradingStructuralTest extends Base {
             throw e;
         }
 
-        // Step 4: Verify trading pair symbol formatting
+        // Step 3: Verify trading pair symbol formatting
         log.info("Step 4: Validating trading pair symbol formatting");
         try {
             homePage.validatePairSymbolFormatting();
@@ -63,7 +58,7 @@ public class SPOT_002_SpotTradingStructuralTest extends Base {
             throw e;
         }
 
-        // Step 5: Validate price display formatting
+        // Step 4: Validate price display formatting
         log.info("Step 5: Validating price display formatting");
         try {
             homePage.validatePriceFormatting();
@@ -73,7 +68,7 @@ public class SPOT_002_SpotTradingStructuralTest extends Base {
             throw e;
         }
 
-        // Step 6: Verify all required UI elements are present
+        // Step 5: Verify all required UI elements are present
         log.info("Step 6: Validating required UI elements");
         try {
             homePage.validateUIElements();

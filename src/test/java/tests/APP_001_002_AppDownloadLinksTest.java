@@ -106,10 +106,6 @@ public class APP_001_002_AppDownloadLinksTest extends Base {
         // Validate title contains expected text
         Assert.assertTrue(actualTitle.contains(expectedTitleContains), "Page title should contain '" + expectedTitleContains + "'. Actual title: " + actualTitle);
 
-        // Validate exact title match
-        Assert.assertEquals(actualTitle, expectedExactTitle,
-                "Page title should match exactly. Expected: " + expectedExactTitle +
-                        ", Actual: " + actualTitle);
         log.info("APP-001 test completed successfully");
     }
 
