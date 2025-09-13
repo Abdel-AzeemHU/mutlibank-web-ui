@@ -35,6 +35,12 @@
                     <include name="testFooterMarketingBanners" />
                 </methods>
             </class>
+            <class name="tests.APP_001_002_AppDownloadLinksTest">
+                <methods>
+                    <include name="testAppStoreDownloadLink" />
+                    <include name="testGooglePlayDownloadLink" />
+                </methods>
+            </class>
 		</classes>
 	</test>
 </suite>

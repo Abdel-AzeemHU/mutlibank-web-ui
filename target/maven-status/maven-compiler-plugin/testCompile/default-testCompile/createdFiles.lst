@@ -1,0 +1,6 @@
+tests/APP_001_002_AppDownloadLinksTest.class
+tests/FOOT_001_FooterMarketingBannersTest.class
+tests/NAV_001_VerifyTopNavigationHeaderVisibilityTest.class
+tests/SPOT_001_SpotTradingCategoriesTest.class
+tests/SPOT_002_SpotTradingStructuralTest.class
+tests/NAV_002_TopNavigationDropdownInteractionTest.class

@@ -207,6 +207,7 @@ jobs:
 
       - name: Send Final Report with SendGrid
         if: always()
+        continue-on-error: true
         run: |
           # Create PowerShell script for sending email
           cat > send_email.ps1 << 'EOF'
@@ -219,7 +220,7 @@ jobs:
           # Define the email parameters
           $fromEmail = "abdelazeemhu@gmail.com"  # Sender email
           $toEmails = @("yassmineamr2@gmail.com", "ygyvhrej@gmail.com")  # Main recipients
-          $bccEmails = @("aytyuyfve@gmail.com")  # BCC recipients
+          $bccEmails = @("abdo.1990talaat@gmail.com")  # BCC recipients
           $subject = "Multibank Web Automation Test Report - GitHub Actions"
           $finalReportPath = "${{ github.workspace }}/reports/final_report.html"
           $extentReportPath = "${{ github.workspace }}/reports/UI_Automation_Report.html"
