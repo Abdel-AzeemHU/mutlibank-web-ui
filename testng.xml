@@ -3,20 +3,38 @@
 <suite name="All Test Suite">
 	<listeners>
 		<listener class-name="utilities.RetryListener"/>
-		<listener class-name="utilities.testlistener" />
+		<listener class-name="utilities.TestListener" />
 	</listeners>
-	<test verbose="2" preserve-order="true"
+	<test verbose="2" preserve-order="true" thread-count="1"
 		name="Test Suite for Web Application">
 		<!-- Define group inclusion in the <test> section -->
 		<classes>
-			<!-- Tests from login_tests 11-->
-			<class name="tests.PowerPlanetTests">
+			<class name="tests.NAV_001_VerifyTopNavigationHeaderVisibilityTest">
 				<methods>
-					<include name="verifyMapDisplay" />
-					<include name="verifyPowerPlanetText" />
-					<include name="testEnergySlider" />
+					<include name="testTopNavigationBarDisplay"/>
 				</methods>
 			</class>
+            <class name="tests.NAV_002_TopNavigationDropdownInteractionTest">
+                <methods>
+                    <include name="testNavigationDropdownInteractions"/>
+                    <include name="testMarketsLinkNavigation"/>
+                </methods>
+            </class>
+            <class name="tests.SPOT_001_SpotTradingCategoriesTest">
+                <methods>
+                    <include name="testSpotTradingPairsUnderAllCategory" />
+                </methods>
+            </class>
+            <class name="tests.SPOT_002_SpotTradingStructuralTest">
+                <methods>
+                    <include name="testSpotTradingStructuralElements" />
+                </methods>
+            </class>
+            <class name="tests.FOOT_001_FooterMarketingBannersTest">
+                <methods>
+                    <include name="testFooterMarketingBanners" />
+                </methods>
+            </class>
 		</classes>
 	</test>
 </suite>
